@@ -1,0 +1,63 @@
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { statsApi } from '../services/api';
+
+const StatsContext = createContext();
+
+export function StatsProvider({ children }) {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await statsApi.get();
+      setStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+    // Check in on load to update streak
+    statsApi.checkin().catch(console.error);
+  }, [fetchStats]);
+
+  const refreshStats = useCallback(async () => {
+    await fetchStats();
+  }, [fetchStats]);
+
+  const addPoints = useCallback((points) => {
+    setStats(prev => prev ? {
+      ...prev,
+      totalPoints: prev.totalPoints + points
+    } : null);
+  }, []);
+
+  const value = {
+    stats,
+    loading,
+    refreshStats,
+    addPoints,
+    totalPoints: stats?.totalPoints || 0,
+    currentStreak: stats?.currentStreak || 0,
+    longestStreak: stats?.longestStreak || 0,
+    achievements: stats?.achievements || [],
+    totalActionsCompleted: stats?.totalActionsCompleted || 0
+  };
+
+  return (
+    <StatsContext.Provider value={value}>
+      {children}
+    </StatsContext.Provider>
+  );
+}
+
+export function useStats() {
+  const context = useContext(StatsContext);
+  if (!context) {
+    throw new Error('useStats must be used within a StatsProvider');
+  }
+  return context;
+}
