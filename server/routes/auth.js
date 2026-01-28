@@ -141,6 +141,13 @@ router.post('/google', authLimiter, async (req, res) => {
   }
 });
 
+// GET /api/auth/config (public - returns what auth methods are available)
+router.get('/config', (req, res) => {
+  res.json({
+    googleClientId: process.env.GOOGLE_CLIENT_ID || null
+  });
+});
+
 // GET /api/auth/me
 router.get('/me', auth, async (req, res) => {
   try {

@@ -1,13 +1,20 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { statsApi } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const StatsContext = createContext();
 
 export function StatsProvider({ children }) {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchStats = useCallback(async () => {
+    if (!user) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
     try {
       const response = await statsApi.get();
       setStats(response.data);
@@ -16,13 +23,17 @@ export function StatsProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    if (!user) {
+      setStats(null);
+      setLoading(false);
+      return;
+    }
     fetchStats();
-    // Check in on load to update streak
     statsApi.checkin().catch(console.error);
-  }, [fetchStats]);
+  }, [user, fetchStats]);
 
   const refreshStats = useCallback(async () => {
     await fetchStats();

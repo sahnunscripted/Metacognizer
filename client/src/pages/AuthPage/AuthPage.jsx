@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Button, Input } from '../../components/common';
+import api from '../../services/api';
 
 export default function AuthPage() {
   const { user, login, register, googleLogin } = useAuth();
@@ -13,6 +14,17 @@ export default function AuthPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState(null);
+
+  useEffect(() => {
+    api.get('/auth/config')
+      .then(res => {
+        if (res.data.googleClientId) {
+          setGoogleClientId(res.data.googleClientId);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -62,8 +74,6 @@ export default function AuthPage() {
       setLoading(false);
     }
   };
-
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   return (
     <div className="min-h-screen bg-dark-900 flex items-center justify-center px-4">
@@ -152,12 +162,10 @@ export default function AuthPage() {
               <div className="flex-1 h-px bg-dark-700" />
             </div>
 
-            <div id="google-signin-container">
-              <GoogleSignInButton
-                clientId={googleClientId}
-                onSuccess={handleGoogleSuccess}
-              />
-            </div>
+            <GoogleSignInButton
+              clientId={googleClientId}
+              onSuccess={handleGoogleSuccess}
+            />
           </>
         )}
       </div>
@@ -166,35 +174,36 @@ export default function AuthPage() {
 }
 
 function GoogleSignInButton({ clientId, onSuccess }) {
-  const [loaded, setLoaded] = useState(false);
+  const btnRef = useRef(null);
+  const callbackRef = useRef(onSuccess);
+  callbackRef.current = onSuccess;
 
-  useState(() => {
+  useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = () => {
+      if (!window.google || !btnRef.current) return;
       window.google.accounts.id.initialize({
         client_id: clientId,
-        callback: onSuccess
+        callback: (response) => callbackRef.current(response)
       });
-      window.google.accounts.id.renderButton(
-        document.getElementById('google-btn'),
-        {
-          theme: 'filled_black',
-          size: 'large',
-          width: '100%',
-          text: 'continue_with'
-        }
-      );
-      setLoaded(true);
+      window.google.accounts.id.renderButton(btnRef.current, {
+        theme: 'filled_black',
+        size: 'large',
+        width: btnRef.current.offsetWidth,
+        text: 'continue_with'
+      });
     };
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
     };
-  });
+  }, [clientId]);
 
-  return <div id="google-btn" className="flex justify-center" />;
+  return <div ref={btnRef} className="w-full [&>div]:w-full [&_iframe]:w-full" />;
 }
