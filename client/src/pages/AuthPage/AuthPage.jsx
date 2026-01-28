@@ -151,6 +151,11 @@ export default function AuthPage() {
             />
           </>
         )}
+
+        {/* Privacy Statement */}
+        <p className="text-xs text-dark-500 text-center leading-relaxed">
+          Your data is encrypted in transit, scoped to your account, and we have no admin tools to view user data.
+        </p>
       </div>
     </div>
   );
