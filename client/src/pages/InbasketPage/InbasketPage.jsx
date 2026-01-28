@@ -389,10 +389,10 @@ export default function InbasketPage() {
         </Card>
       )}
 
-      {/* GTD Reminder */}
+      {/* How-to Reminder */}
       <Card variant="default" padding="sm" className="border-primary-500/30">
         <p className="text-xs text-dark-400">
-          <span className="text-primary-400 font-medium">GTD Process:</span> For each item, ask: "What is this?" and "Is it actionable?" Then: Trash, Delegate, Defer, or Do it now (if under 2 min).
+          <span className="text-primary-400 font-medium">How to process:</span> For each item, ask: "What is this?" and "Is it actionable?" Then: Trash, Delegate, Defer, or Do it now (if under 2 min).
         </p>
       </Card>
 
