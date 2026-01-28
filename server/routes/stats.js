@@ -136,6 +136,109 @@ router.post('/checkin', async (req, res) => {
   }
 });
 
+// --- Onboarding endpoints ---
+
+const ALL_MISSIONS = ['dump', 'process', 'action', 'inbox', 'project', 'someday'];
+
+// GET onboarding state
+router.get('/onboarding', async (req, res) => {
+  try {
+    const stats = await UserStats.getStats(req.userId);
+
+    // Existing users with activity skip The Unload
+    const hasActivity = stats.totalActionsCompleted > 0 ||
+      stats.totalBraindumpsProcessed > 0 ||
+      stats.totalInbasketProcessed > 0;
+    const unloadComplete = stats.onboarding?.unloadComplete || hasActivity;
+
+    res.json({
+      unloadComplete,
+      dismissed: stats.onboarding?.dismissed || false,
+      completedMissions: stats.onboarding?.completedMissions || []
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST complete a mission
+router.post('/onboarding/complete-mission', async (req, res) => {
+  try {
+    const { mission } = req.body;
+    if (!mission || !ALL_MISSIONS.includes(mission)) {
+      return res.status(400).json({ message: 'Invalid mission' });
+    }
+
+    const stats = await UserStats.getStats(req.userId);
+
+    if (!stats.onboarding) {
+      stats.onboarding = { unloadComplete: false, dismissed: false, completedMissions: [] };
+    }
+
+    // Already completed
+    if (stats.onboarding.completedMissions.includes(mission)) {
+      return res.json({
+        completedMissions: stats.onboarding.completedMissions,
+        pointsAwarded: 0,
+        allComplete: stats.onboarding.completedMissions.length === ALL_MISSIONS.length
+      });
+    }
+
+    stats.onboarding.completedMissions.push(mission);
+    stats.totalPoints += 15;
+
+    // Check if all missions complete
+    const allComplete = ALL_MISSIONS.every(m => stats.onboarding.completedMissions.includes(m));
+    if (allComplete) {
+      const hasAchievement = stats.achievements.some(a => a.type === 'systemLearned');
+      if (!hasAchievement) {
+        stats.achievements.push({ type: 'systemLearned' });
+        stats.totalPoints += UserStats.POINT_VALUES.achievementBonus;
+      }
+    }
+
+    await stats.save();
+
+    res.json({
+      completedMissions: stats.onboarding.completedMissions,
+      pointsAwarded: 15,
+      allComplete
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST dismiss onboarding
+router.post('/onboarding/dismiss', async (req, res) => {
+  try {
+    const stats = await UserStats.getStats(req.userId);
+    if (!stats.onboarding) {
+      stats.onboarding = { unloadComplete: false, dismissed: false, completedMissions: [] };
+    }
+    stats.onboarding.dismissed = true;
+    await stats.save();
+    res.json({ dismissed: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// POST mark unload complete
+router.post('/onboarding/unload-complete', async (req, res) => {
+  try {
+    const stats = await UserStats.getStats(req.userId);
+    if (!stats.onboarding) {
+      stats.onboarding = { unloadComplete: false, dismissed: false, completedMissions: [] };
+    }
+    stats.onboarding.unloadComplete = true;
+    await stats.save();
+    res.json({ unloadComplete: true });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Helper functions
 function getTodayPoints(stats) {
   const today = new Date();
@@ -159,7 +262,8 @@ function getAvailableAchievements(stats) {
     { type: 'points1000', name: 'Point Master', description: 'Earn 1000 points', icon: '🌟' },
     { type: 'projectComplete', name: 'Project Pro', description: 'Complete a project', icon: '📦' },
     { type: 'inboxZero', name: 'Inbox Zero', description: 'Clear your entire inbasket', icon: '📭' },
-    { type: 'braindumpMaster', name: 'Mind Clearer', description: 'Process 50 braindump items', icon: '🧠' }
+    { type: 'braindumpMaster', name: 'Mind Clearer', description: 'Process 50 braindump items', icon: '🧠' },
+    { type: 'systemLearned', name: 'System Learned', description: 'Complete all starter missions', icon: '🎓' }
   ];
 
   const earnedTypes = stats.achievements.map(a => a.type);

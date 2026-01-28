@@ -4,6 +4,7 @@ import { Card, Button, Modal, Input, Select, Badge, EmptyState } from '../../com
 import { inbasketApi, projectsApi } from '../../services/api';
 import { useCelebration } from '../../context/CelebrationContext';
 import { useStats } from '../../context/StatsContext';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 const SOURCES = [
   { value: 'email', label: 'Email' },
@@ -301,6 +302,7 @@ export default function InbasketPage() {
   const [newItem, setNewItem] = useState({ content: '', source: 'note', notes: '' });
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
+  const { completeMission } = useOnboarding();
 
   const fetchItems = async () => {
     try {
@@ -353,6 +355,7 @@ export default function InbasketPage() {
         celebrate('action', 2, 'Processed!');
       }
       refreshStats();
+      completeMission('inbox');
     } catch (error) {
       console.error('Failed to process item:', error);
     }

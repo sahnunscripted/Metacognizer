@@ -4,6 +4,7 @@ import { Card, Button, Modal, Input, Select, Badge, EmptyState } from '../../com
 import { braindumpApi, projectsApi } from '../../services/api';
 import { useCelebration } from '../../context/CelebrationContext';
 import { useStats } from '../../context/StatsContext';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 const CATEGORIES = [
   { value: 'uncategorized', label: 'Uncategorized' },
@@ -282,6 +283,7 @@ export default function BraindumpPage() {
   const inputRef = useRef(null);
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
+  const { completeMission } = useOnboarding();
 
   const fetchItems = async () => {
     try {
@@ -317,6 +319,7 @@ export default function BraindumpPage() {
       setItems(prev => [response.data, ...prev]);
       setInputValue('');
       inputRef.current?.focus();
+      completeMission('dump');
     } catch (error) {
       console.error('Failed to add item:', error);
     }
@@ -329,6 +332,7 @@ export default function BraindumpPage() {
       setProcessing(null);
       celebrate('action', 3, 'Item processed!');
       refreshStats();
+      completeMission('process');
     } catch (error) {
       console.error('Failed to process item:', error);
     }

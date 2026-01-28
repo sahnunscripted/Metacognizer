@@ -106,4 +106,12 @@ export const statsApi = {
   checkin: () => api.post('/stats/checkin')
 };
 
+// Onboarding API
+export const onboardingApi = {
+  get: () => api.get('/stats/onboarding'),
+  completeMission: (mission) => api.post('/stats/onboarding/complete-mission', { mission }),
+  dismiss: () => api.post('/stats/onboarding/dismiss'),
+  completeUnload: () => api.post('/stats/onboarding/unload-complete')
+};
+
 export default api;

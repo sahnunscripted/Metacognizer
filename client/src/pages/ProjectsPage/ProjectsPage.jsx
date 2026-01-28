@@ -6,6 +6,7 @@ import ActionForm from '../../components/actions/ActionForm/ActionForm';
 import { projectsApi } from '../../services/api';
 import { useCelebration } from '../../context/CelebrationContext';
 import { useStats } from '../../context/StatsContext';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
@@ -319,7 +320,12 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [filter]);
 
+  const { completeMission } = useOnboarding();
+
   const handleSave = (project) => {
+    if (!selectedProject) {
+      completeMission('project');
+    }
     setShowForm(false);
     setSelectedProject(null);
     fetchProjects();

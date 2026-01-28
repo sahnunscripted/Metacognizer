@@ -4,12 +4,14 @@ import { format, isPast, isToday } from 'date-fns';
 import { Card, Badge, Button } from '../../common';
 import { useCelebration } from '../../../context/CelebrationContext';
 import { useStats } from '../../../context/StatsContext';
+import { useOnboarding } from '../../../context/OnboardingContext';
 import { actionsApi } from '../../../services/api';
 
 export default function ActionItem({ action, onUpdate, onDelete, onClick }) {
   const [completing, setCompleting] = useState(false);
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
+  const { completeMission } = useOnboarding();
 
   const handleComplete = async (e) => {
     e.stopPropagation();
@@ -28,6 +30,7 @@ export default function ActionItem({ action, onUpdate, onDelete, onClick }) {
       );
 
       refreshStats();
+      completeMission('action');
       onUpdate?.(response.data.action);
     } catch (error) {
       console.error('Failed to complete action:', error);

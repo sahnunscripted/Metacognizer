@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { Card, Button, Modal, Input, Select, Badge, EmptyState } from '../../components/common';
 import { somedayApi } from '../../services/api';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 const CATEGORIES = [
   { value: 'someday', label: 'Someday' },
@@ -291,7 +292,12 @@ export default function SomedayPage() {
     fetchItems();
   }, [filter]);
 
+  const { completeMission } = useOnboarding();
+
   const handleSave = () => {
+    if (!editingItem) {
+      completeMission('someday');
+    }
     setShowForm(false);
     setEditingItem(null);
     fetchItems();

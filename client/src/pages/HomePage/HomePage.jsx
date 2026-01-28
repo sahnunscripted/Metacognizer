@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import ActionList from '../../components/actions/ActionList/ActionList';
 import ActionForm from '../../components/actions/ActionForm/ActionForm';
 import PointsDisplay from '../../components/rewards/PointsDisplay/PointsDisplay';
+import GettingStartedCard from '../../components/onboarding/GettingStartedCard';
 import { Button, Modal, Card } from '../../components/common';
 
 const quickNavItems = [
@@ -85,6 +86,9 @@ export default function HomePage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Getting Started Missions */}
+      <GettingStartedCard />
 
       {/* Quick Add Section */}
       <Card variant="glass" padding="sm">

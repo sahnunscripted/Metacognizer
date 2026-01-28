@@ -61,7 +61,8 @@ const userStatsSchema = new mongoose.Schema({
         'points1000',
         'projectComplete',
         'inboxZero',
-        'braindumpMaster'
+        'braindumpMaster',
+        'systemLearned'
       ]
     },
     earnedAt: {
@@ -90,6 +91,20 @@ const userStatsSchema = new mongoose.Schema({
   quickActionsCompleted: {
     type: Number,
     default: 0
+  },
+  // Onboarding state
+  onboarding: {
+    unloadComplete: {
+      type: Boolean,
+      default: false
+    },
+    dismissed: {
+      type: Boolean,
+      default: false
+    },
+    completedMissions: [{
+      type: String
+    }]
   }
 }, {
   timestamps: true
