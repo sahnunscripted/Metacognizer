@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, differenceInDays } from 'date-fns';
 import { Card, Button, Modal, Input, Select, Badge, EmptyState } from '../../components/common';
@@ -273,6 +274,7 @@ export default function SomedayPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [activatingItem, setActivatingItem] = useState(null);
   const [filter, setFilter] = useState('');
+  const navigate = useNavigate();
 
   const fetchItems = async () => {
     setLoading(true);
@@ -294,9 +296,12 @@ export default function SomedayPage() {
 
   const { completeMission } = useOnboarding();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingItem) {
-      completeMission('someday');
+      const wasFirstTime = await completeMission('someday');
+      if (wasFirstTime) {
+        setTimeout(() => navigate('/'), 1500);
+      }
     }
     setShowForm(false);
     setEditingItem(null);

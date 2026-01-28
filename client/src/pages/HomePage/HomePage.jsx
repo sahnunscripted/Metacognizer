@@ -109,7 +109,7 @@ export default function HomePage() {
       </Card>
 
       {/* Section Title */}
-      <div className="flex items-center justify-between">
+      <div id="actions-section" className="flex items-center justify-between scroll-mt-20">
         <h2 className="text-lg font-semibold text-dark-100">Next Actions</h2>
       </div>
 

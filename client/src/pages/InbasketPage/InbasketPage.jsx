@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, Modal, Input, Select, Badge, EmptyState } from '../../components/common';
 import { inbasketApi, projectsApi } from '../../services/api';
@@ -300,6 +301,7 @@ export default function InbasketPage() {
   const [processing, setProcessing] = useState(null);
   const [projects, setProjects] = useState([]);
   const [newItem, setNewItem] = useState({ content: '', source: 'note', notes: '' });
+  const navigate = useNavigate();
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
   const { completeMission } = useOnboarding();
@@ -355,7 +357,10 @@ export default function InbasketPage() {
         celebrate('action', 2, 'Processed!');
       }
       refreshStats();
-      completeMission('inbox');
+      const wasFirstTime = await completeMission('inbox');
+      if (wasFirstTime) {
+        setTimeout(() => navigate('/'), 1500);
+      }
     } catch (error) {
       console.error('Failed to process item:', error);
     }

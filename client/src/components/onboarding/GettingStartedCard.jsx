@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useOnboarding } from '../../context/OnboardingContext';
 import { Card, ProgressBar } from '../common';
@@ -19,8 +19,8 @@ const MISSIONS = [
   {
     id: 'action',
     name: 'Finish something',
-    description: 'Complete any action. Even a tiny one counts.',
-    nav: '/'
+    description: 'Complete any action below.',
+    nav: null // Already on homepage - scroll to actions
   },
   {
     id: 'inbox',
@@ -45,10 +45,25 @@ const MISSIONS = [
 export default function GettingStartedCard() {
   const { showMissions, completedMissions, dismissOnboarding } = useOnboarding();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!showMissions) return null;
 
   const doneCount = completedMissions.length;
+
+  const handleMissionClick = (mission) => {
+    if (completedMissions.includes(mission.id)) return;
+
+    if (mission.nav) {
+      navigate(mission.nav);
+    } else {
+      // For missions with no nav (like "action"), scroll to actions section
+      const actionsSection = document.getElementById('actions-section');
+      if (actionsSection) {
+        actionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
 
   return (
     <motion.div
@@ -65,12 +80,23 @@ export default function GettingStartedCard() {
               {doneCount}/{MISSIONS.length}
             </span>
           </div>
-          <button
-            onClick={dismissOnboarding}
-            className="text-xs text-dark-500 hover:text-dark-400 transition-colors"
-          >
-            I've got this
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={dismissOnboarding}
+              className="text-xs text-dark-500 hover:text-dark-400 transition-colors"
+            >
+              I've got this
+            </button>
+            <button
+              onClick={dismissOnboarding}
+              className="p-1 rounded-lg text-dark-500 hover:text-dark-300 hover:bg-dark-700 transition-colors"
+              title="Close"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -86,7 +112,7 @@ export default function GettingStartedCard() {
               <motion.button
                 key={mission.id}
                 layout
-                onClick={() => !done && navigate(mission.nav)}
+                onClick={() => handleMissionClick(mission)}
                 disabled={done}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                   done

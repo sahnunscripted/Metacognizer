@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, Modal, Input, Select, ProgressBar, Badge, EmptyState } from '../../components/common';
 import ActionList from '../../components/actions/ActionList/ActionList';
@@ -302,6 +303,7 @@ export default function ProjectsPage() {
   const [selectedProject, setSelectedProject] = useState(null);
   const [viewingProject, setViewingProject] = useState(null);
   const [filter, setFilter] = useState('active');
+  const navigate = useNavigate();
 
   const fetchProjects = async () => {
     setLoading(true);
@@ -322,9 +324,12 @@ export default function ProjectsPage() {
 
   const { completeMission } = useOnboarding();
 
-  const handleSave = (project) => {
+  const handleSave = async (project) => {
     if (!selectedProject) {
-      completeMission('project');
+      const wasFirstTime = await completeMission('project');
+      if (wasFirstTime) {
+        setTimeout(() => navigate('/'), 1500);
+      }
     }
     setShowForm(false);
     setSelectedProject(null);

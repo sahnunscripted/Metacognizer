@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Button, Modal, Input, Select, Badge, EmptyState } from '../../components/common';
 import { braindumpApi, projectsApi } from '../../services/api';
@@ -281,6 +282,7 @@ export default function BraindumpPage() {
   const [processing, setProcessing] = useState(null);
   const [projects, setProjects] = useState([]);
   const inputRef = useRef(null);
+  const navigate = useNavigate();
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
   const { completeMission } = useOnboarding();
@@ -332,7 +334,11 @@ export default function BraindumpPage() {
       setProcessing(null);
       celebrate('action', 3, 'Item processed!');
       refreshStats();
-      completeMission('process');
+      const wasFirstTime = await completeMission('process');
+      if (wasFirstTime) {
+        // Navigate home after celebration shows
+        setTimeout(() => navigate('/'), 1500);
+      }
     } catch (error) {
       console.error('Failed to process item:', error);
     }

@@ -30,8 +30,9 @@ export function OnboardingProvider({ children }) {
       .finally(() => setLoading(false));
   }, [user]);
 
+  // Returns true if this was a first-time completion (for navigation purposes)
   const completeMission = useCallback(async (mission) => {
-    if (state.completedMissions.includes(mission)) return;
+    if (state.completedMissions.includes(mission)) return false;
 
     // Optimistic update
     setState(prev => ({
@@ -50,12 +51,14 @@ export function OnboardingProvider({ children }) {
           celebrate('achievement', 25, 'System Learned!');
         }, 1500);
       }
+      return true; // First-time completion
     } catch (error) {
       // Revert on failure
       setState(prev => ({
         ...prev,
         completedMissions: prev.completedMissions.filter(m => m !== mission)
       }));
+      return false;
     }
   }, [state.completedMissions, celebrate, refreshStats]);
 
