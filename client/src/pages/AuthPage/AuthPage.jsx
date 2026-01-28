@@ -8,7 +8,6 @@ export default function AuthPage() {
   const { user, login, register, googleLogin } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: ''
   });
@@ -44,17 +43,12 @@ export default function AuthPage() {
       if (isLogin) {
         await login(formData.email, formData.password);
       } else {
-        if (!formData.name.trim()) {
-          setError('Name is required');
-          setLoading(false);
-          return;
-        }
         if (formData.password.length < 6) {
           setError('Password must be at least 6 characters');
           setLoading(false);
           return;
         }
-        await register(formData.name, formData.email, formData.password);
+        await register(formData.email, formData.password);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong');
@@ -113,17 +107,6 @@ export default function AuthPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <Input
-              label="Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Your name"
-              autoComplete="name"
-            />
-          )}
-
           <Input
             label="Email"
             name="email"
