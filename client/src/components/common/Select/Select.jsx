@@ -34,7 +34,7 @@ const Select = forwardRef(({
           {label}
         </label>
       )}
-      <div className="relative">
+      <div className="relative"  style={{width: '105px'}}>
         <select
           ref={ref}
           className={`${selectClasses} ${className}`}
