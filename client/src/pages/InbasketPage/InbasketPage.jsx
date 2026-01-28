@@ -53,7 +53,14 @@ function ProcessingFlow({ item, projects, onProcess, onClose }) {
   };
 
   const handleProcess = () => {
-    onProcess(item._id, decision, formData);
+    // Clean up empty strings to null for proper backend handling
+    const cleanedData = {
+      ...formData,
+      project: formData.project || null,
+      deadline: formData.deadline || null,
+      estimatedMinutes: formData.estimatedMinutes ? parseInt(formData.estimatedMinutes) : null
+    };
+    onProcess(item._id, decision, cleanedData);
   };
 
   const handleChange = (e) => {
