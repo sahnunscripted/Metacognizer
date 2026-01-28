@@ -1,12 +1,19 @@
 import express from 'express';
 import Action from '../models/Action.js';
 import UserStats from '../models/UserStats.js';
+import generateRecurringActions from '../utils/generateRecurringActions.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 // GET all actions with filtering
 router.get('/', async (req, res) => {
   try {
+    // Generate any pending recurring actions for today (idempotent)
+    await generateRecurringActions(req.userId);
+
     const {
       status,
       context,
@@ -18,7 +25,7 @@ router.get('/', async (req, res) => {
       limit
     } = req.query;
 
-    const query = {};
+    const query = { userId: req.userId };
 
     if (status) query.status = status;
     if (context) query.context = context;
@@ -50,7 +57,7 @@ router.get('/', async (req, res) => {
 // GET single action
 router.get('/:id', async (req, res) => {
   try {
-    const action = await Action.findById(req.params.id).populate('project');
+    const action = await Action.findOne({ _id: req.params.id, userId: req.userId }).populate('project');
     if (!action) {
       return res.status(404).json({ message: 'Action not found' });
     }
@@ -63,7 +70,7 @@ router.get('/:id', async (req, res) => {
 // POST create action
 router.post('/', async (req, res) => {
   try {
-    const action = new Action(req.body);
+    const action = new Action({ ...req.body, userId: req.userId });
 
     // Auto-extract keywords from title and description if not provided
     if (!req.body.keywords || req.body.keywords.length === 0) {
@@ -83,7 +90,7 @@ router.post('/', async (req, res) => {
 // PUT update action
 router.put('/:id', async (req, res) => {
   try {
-    const action = await Action.findById(req.params.id);
+    const action = await Action.findOne({ _id: req.params.id, userId: req.userId });
     if (!action) {
       return res.status(404).json({ message: 'Action not found' });
     }
@@ -93,7 +100,7 @@ router.put('/:id', async (req, res) => {
       req.body.completedAt = new Date();
 
       // Award points
-      const stats = await UserStats.getStats();
+      const stats = await UserStats.getStats(req.userId);
       const points = action.isQuickAction
         ? UserStats.POINT_VALUES.completeQuickAction
         : UserStats.POINT_VALUES.completeAction;
@@ -138,7 +145,7 @@ router.put('/:id', async (req, res) => {
 // DELETE action
 router.delete('/:id', async (req, res) => {
   try {
-    const action = await Action.findByIdAndDelete(req.params.id);
+    const action = await Action.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!action) {
       return res.status(404).json({ message: 'Action not found' });
     }
@@ -151,7 +158,7 @@ router.delete('/:id', async (req, res) => {
 // POST complete action (convenience endpoint)
 router.post('/:id/complete', async (req, res) => {
   try {
-    const action = await Action.findById(req.params.id);
+    const action = await Action.findOne({ _id: req.params.id, userId: req.userId });
     if (!action) {
       return res.status(404).json({ message: 'Action not found' });
     }
@@ -164,7 +171,7 @@ router.post('/:id/complete', async (req, res) => {
     action.completedAt = new Date();
 
     // Award points
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     const points = action.isQuickAction
       ? UserStats.POINT_VALUES.completeQuickAction
       : UserStats.POINT_VALUES.completeAction;

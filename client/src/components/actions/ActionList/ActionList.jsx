@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import ActionItem from '../ActionItem/ActionItem';
 import { EmptyState, Input, Select, Badge } from '../../common';
@@ -12,7 +12,9 @@ const CONTEXTS = [
   { value: '@errands', label: '@errands' },
   { value: '@home', label: '@home' },
   { value: '@anywhere', label: '@anywhere' },
-  { value: '@waiting', label: '@waiting' }
+  { value: '@waiting', label: '@waiting' },
+  { value: '@beanetics', label: '@beanetics' },
+  { value: '@cafe', label: '@cafe' }
 ];
 
 const STATUS_OPTIONS = [
@@ -36,6 +38,8 @@ export default function ActionList({
 }) {
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fadingActions, setFadingActions] = useState(new Set());
+  const fadeTimers = useRef({});
   const [filters, setFilters] = useState({
     status: 'active',
     context: '',
@@ -43,6 +47,13 @@ export default function ActionList({
     quickOnly: false,
     sortBy: 'deadline'
   });
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(fadeTimers.current).forEach(clearTimeout);
+    };
+  }, []);
 
   const fetchActions = async () => {
     setLoading(true);
@@ -79,6 +90,23 @@ export default function ActionList({
     setActions(prev =>
       prev.map(a => a._id === updatedAction._id ? updatedAction : a)
     );
+
+    // If the action was just completed, start a 5-second fade-out
+    if (updatedAction.status === 'completed') {
+      const id = updatedAction._id;
+
+      setFadingActions(prev => new Set(prev).add(id));
+
+      fadeTimers.current[id] = setTimeout(() => {
+        setActions(prev => prev.filter(a => a._id !== id));
+        setFadingActions(prev => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        delete fadeTimers.current[id];
+      }, 3000);
+    }
   };
 
   const quickActions = actions.filter(a => a.isQuickAction && a.status === 'active');
@@ -121,7 +149,7 @@ export default function ActionList({
               onChange={(e) => setFilters(f => ({ ...f, context: e.target.value }))}
               options={CONTEXTS}
               size="sm"
-              className="w-32"
+              className="w-auto min-w-fit"
               fullWidth={false}
             />
             <Select
@@ -129,7 +157,7 @@ export default function ActionList({
               onChange={(e) => setFilters(f => ({ ...f, sortBy: e.target.value }))}
               options={SORT_OPTIONS}
               size="sm"
-              className="w-28"
+              className="w-auto min-w-fit"
               fullWidth={false}
             />
           </div>
@@ -160,8 +188,15 @@ export default function ActionList({
                   key={action._id}
                   layout
                   initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{
+                    opacity: fadingActions.has(action._id) ? 0 : 1,
+                    scale: fadingActions.has(action._id) ? 0.95 : 1,
+                    y: 0
+                  }}
                   exit={{ opacity: 0, x: -100 }}
+                  transition={{
+                    duration: fadingActions.has(action._id) ? 3 : 0.3
+                  }}
                 >
                   <ActionItem
                     action={action}
@@ -203,8 +238,15 @@ export default function ActionList({
                 key={action._id}
                 layout
                 initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{
+                  opacity: fadingActions.has(action._id) ? 0 : 1,
+                  scale: fadingActions.has(action._id) ? 0.95 : 1,
+                  y: 0
+                }}
                 exit={{ opacity: 0, x: -100 }}
+                transition={{
+                  duration: fadingActions.has(action._id) ? 3 : 0.3
+                }}
               >
                 <ActionItem
                   action={action}

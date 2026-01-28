@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button, Input, Select } from '../../common';
-import { actionsApi, projectsApi } from '../../../services/api';
+import { actionsApi, projectsApi, recurringActionsApi } from '../../../services/api';
 import { useCelebration } from '../../../context/CelebrationContext';
 import { useStats } from '../../../context/StatsContext';
 
@@ -11,7 +11,9 @@ const CONTEXTS = [
   { value: '@office', label: '@office - At work only' },
   { value: '@errands', label: '@errands - Out and about' },
   { value: '@home', label: '@home - At home' },
-  { value: '@waiting', label: '@waiting - Waiting for someone' }
+  { value: '@waiting', label: '@waiting - Waiting for someone' },
+  { value: '@beanetics', label: '@beanetics - Beanetics' },
+  { value: '@cafe', label: '@cafe - Cafe' }
 ];
 
 const PRIORITIES = [
@@ -21,6 +23,8 @@ const PRIORITIES = [
   { value: '4', label: 'Low' },
   { value: '5', label: 'Lowest' }
 ];
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ActionForm({
   action = null,
@@ -37,7 +41,10 @@ export default function ActionForm({
     priority: '3',
     project: projectId || '',
     waitingFor: '',
-    status: 'active'
+    status: 'active',
+    isRecurring: false,
+    daysOfWeek: [],
+    recurringEndDate: ''
   });
   const [projects, setProjects] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -57,7 +64,10 @@ export default function ActionForm({
         priority: action.priority?.toString() || '3',
         project: action.project?._id || action.project || '',
         waitingFor: action.waitingFor || '',
-        status: action.status || 'active'
+        status: action.status || 'active',
+        isRecurring: false,
+        daysOfWeek: [],
+        recurringEndDate: ''
       });
     }
   }, [action]);
@@ -82,10 +92,30 @@ export default function ActionForm({
     }
   };
 
+  const toggleDay = (dayIndex) => {
+    setFormData(prev => {
+      const days = prev.daysOfWeek.includes(dayIndex)
+        ? prev.daysOfWeek.filter(d => d !== dayIndex)
+        : [...prev.daysOfWeek, dayIndex].sort();
+      return { ...prev, daysOfWeek: days };
+    });
+    if (errors.daysOfWeek) {
+      setErrors(prev => ({ ...prev, daysOfWeek: null }));
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
+    }
+    if (formData.isRecurring) {
+      if (formData.daysOfWeek.length === 0) {
+        newErrors.daysOfWeek = 'Select at least one day';
+      }
+      if (!formData.recurringEndDate) {
+        newErrors.recurringEndDate = 'End date is required';
+      }
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -97,30 +127,51 @@ export default function ActionForm({
 
     setSaving(true);
     try {
-      // Determine status based on context, but preserve completed status
-      let status = formData.status;
-      if (status !== 'completed') {
-        status = formData.context === '@waiting' ? 'waiting' : 'active';
-      }
+      if (formData.isRecurring && !action) {
+        const recurringData = {
+          title: formData.title,
+          description: formData.description,
+          context: formData.context,
+          priority: parseInt(formData.priority),
+          estimatedMinutes: formData.estimatedMinutes ? parseInt(formData.estimatedMinutes) : null,
+          project: formData.project || null,
+          daysOfWeek: formData.daysOfWeek,
+          endDate: formData.recurringEndDate
+        };
 
-      const data = {
-        ...formData,
-        priority: parseInt(formData.priority),
-        estimatedMinutes: formData.estimatedMinutes ? parseInt(formData.estimatedMinutes) : null,
-        deadline: formData.deadline || null,
-        project: formData.project || null,
-        waitingFor: formData.context === '@waiting' ? formData.waitingFor : null,
-        status
-      };
-
-      let response;
-      if (action) {
-        response = await actionsApi.update(action._id, data);
+        await recurringActionsApi.create(recurringData);
+        onSave?.();
       } else {
-        response = await actionsApi.create(data);
-      }
+        // Determine status based on context, but preserve completed status
+        let status = formData.status;
+        if (status !== 'completed') {
+          status = formData.context === '@waiting' ? 'waiting' : 'active';
+        }
 
-      onSave?.(response.data);
+        const data = {
+          ...formData,
+          priority: parseInt(formData.priority),
+          estimatedMinutes: formData.estimatedMinutes ? parseInt(formData.estimatedMinutes) : null,
+          deadline: formData.deadline || null,
+          project: formData.project || null,
+          waitingFor: formData.context === '@waiting' ? formData.waitingFor : null,
+          status
+        };
+
+        // Clean recurring fields from regular action data
+        delete data.isRecurring;
+        delete data.daysOfWeek;
+        delete data.recurringEndDate;
+
+        let response;
+        if (action) {
+          response = await actionsApi.update(action._id, data);
+        } else {
+          response = await actionsApi.create(data);
+        }
+
+        onSave?.(response.data);
+      }
     } catch (error) {
       console.error('Failed to save action:', error);
       setErrors({ submit: 'Failed to save. Please try again.' });
@@ -203,16 +254,79 @@ export default function ActionForm({
         />
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Input
-          label="Deadline (optional)"
-          name="deadline"
-          type="date"
-          value={formData.deadline}
-          onChange={handleChange}
-        />
+      {/* Recurring action toggle - only when creating new actions */}
+      {!action && (
+        <div className="space-y-3">
+          <label className="flex items-center gap-2 text-sm text-dark-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.isRecurring}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                isRecurring: e.target.checked,
+                deadline: e.target.checked ? '' : prev.deadline
+              }))}
+              className="w-4 h-4 rounded border-dark-600 bg-dark-800 text-primary-500 focus:ring-primary-500"
+            />
+            Repeat this action on specific days
+          </label>
 
-        <div>
+          {formData.isRecurring && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-dark-300 mb-1.5">
+                  Repeat on
+                </label>
+                <div className="flex gap-1.5">
+                  {DAY_LABELS.map((label, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => toggleDay(index)}
+                      className={`
+                        w-10 h-10 rounded-lg text-sm font-medium
+                        transition-all duration-200
+                        ${formData.daysOfWeek.includes(index)
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-dark-800 text-dark-400 hover:bg-dark-700'
+                        }
+                      `}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {errors.daysOfWeek && (
+                  <p className="text-xs text-danger-400 mt-1">{errors.daysOfWeek}</p>
+                )}
+              </div>
+
+              <Input
+                label="Repeat until"
+                name="recurringEndDate"
+                type="date"
+                value={formData.recurringEndDate}
+                onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]}
+                error={errors.recurringEndDate}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        {!formData.isRecurring && (
+          <Input
+            label="Deadline (optional)"
+            name="deadline"
+            type="date"
+            value={formData.deadline}
+            onChange={handleChange}
+          />
+        )}
+
+        <div className={formData.isRecurring ? 'col-span-2' : ''}>
           <Input
             label="Estimated time (min)"
             name="estimatedMinutes"
@@ -280,7 +394,7 @@ export default function ActionForm({
           loading={saving}
           className="flex-1"
         >
-          {action ? 'Update' : 'Create'} Action
+          {action ? 'Update Action' : formData.isRecurring ? 'Create Recurring Action' : 'Create Action'}
         </Button>
       </div>
     </form>

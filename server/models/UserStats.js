@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
 
 const userStatsSchema = new mongoose.Schema({
-  // Since we're not using auth, we'll use a singleton pattern
-  isSingleton: {
-    type: Boolean,
-    default: true,
-    unique: true
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true,
+    index: true
   },
   totalPoints: {
     type: Number,
@@ -138,11 +139,11 @@ userStatsSchema.methods.updateStreak = function() {
   this.lastActiveDate = today;
 };
 
-// Static method to get or create the singleton stats
-userStatsSchema.statics.getStats = async function() {
-  let stats = await this.findOne({ isSingleton: true });
+// Static method to get or create stats for a user
+userStatsSchema.statics.getStats = async function(userId) {
+  let stats = await this.findOne({ userId });
   if (!stats) {
-    stats = await this.create({ isSingleton: true });
+    stats = await this.create({ userId });
   }
   return stats;
 };

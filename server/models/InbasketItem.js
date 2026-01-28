@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 
 const inbasketItemSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
   content: {
     type: String,
     required: [true, 'Content is required'],

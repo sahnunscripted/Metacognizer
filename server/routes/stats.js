@@ -1,12 +1,15 @@
 import express from 'express';
 import UserStats from '../models/UserStats.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 // GET user stats
 router.get('/', async (req, res) => {
   try {
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     res.json(stats);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -16,7 +19,7 @@ router.get('/', async (req, res) => {
 // GET streak info
 router.get('/streak', async (req, res) => {
   try {
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     res.json({
       currentStreak: stats.currentStreak,
       longestStreak: stats.longestStreak,
@@ -30,7 +33,7 @@ router.get('/streak', async (req, res) => {
 // GET point totals
 router.get('/points', async (req, res) => {
   try {
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     res.json({
       totalPoints: stats.totalPoints,
       todayPoints: getTodayPoints(stats)
@@ -43,7 +46,7 @@ router.get('/points', async (req, res) => {
 // GET achievements
 router.get('/achievements', async (req, res) => {
   try {
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     res.json({
       earned: stats.achievements,
       available: getAvailableAchievements(stats)
@@ -57,7 +60,7 @@ router.get('/achievements', async (req, res) => {
 router.get('/activity', async (req, res) => {
   try {
     const { days = 7 } = req.query;
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
 
     const now = new Date();
     const startDate = new Date();
@@ -76,7 +79,7 @@ router.get('/activity', async (req, res) => {
 // POST check in (for streak maintenance)
 router.post('/checkin', async (req, res) => {
   try {
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     const previousStreak = stats.currentStreak;
 
     stats.updateStreak();

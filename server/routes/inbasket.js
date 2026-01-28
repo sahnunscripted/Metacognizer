@@ -4,15 +4,18 @@ import Action from '../models/Action.js';
 import Project from '../models/Project.js';
 import SomedayItem from '../models/SomedayItem.js';
 import UserStats from '../models/UserStats.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 // GET all inbasket items
 router.get('/', async (req, res) => {
   try {
     const { status, source, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
-    const query = {};
+    const query = { userId: req.userId };
     if (status) query.status = status;
     if (source) query.source = source;
 
@@ -28,7 +31,7 @@ router.get('/', async (req, res) => {
 // GET single item
 router.get('/:id', async (req, res) => {
   try {
-    const item = await InbasketItem.findById(req.params.id);
+    const item = await InbasketItem.findOne({ _id: req.params.id, userId: req.userId });
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
@@ -41,7 +44,7 @@ router.get('/:id', async (req, res) => {
 // POST create inbasket item
 router.post('/', async (req, res) => {
   try {
-    const item = new InbasketItem(req.body);
+    const item = new InbasketItem({ ...req.body, userId: req.userId });
     const savedItem = await item.save();
     res.status(201).json(savedItem);
   } catch (error) {
@@ -52,8 +55,8 @@ router.post('/', async (req, res) => {
 // PUT update inbasket item
 router.put('/:id', async (req, res) => {
   try {
-    const item = await InbasketItem.findByIdAndUpdate(
-      req.params.id,
+    const item = await InbasketItem.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
       req.body,
       { new: true, runValidators: true }
     );
@@ -69,7 +72,7 @@ router.put('/:id', async (req, res) => {
 // DELETE inbasket item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await InbasketItem.findByIdAndDelete(req.params.id);
+    const item = await InbasketItem.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
@@ -83,7 +86,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/process', async (req, res) => {
   try {
     const { decision, data } = req.body;
-    const item = await InbasketItem.findById(req.params.id);
+    const item = await InbasketItem.findOne({ _id: req.params.id, userId: req.userId });
 
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -112,7 +115,8 @@ router.post('/:id/process', async (req, res) => {
             deadline: data.deadline,
             estimatedMinutes: data.estimatedMinutes,
             project: data.project,
-            priority: data.priority || 3
+            priority: data.priority || 3,
+            userId: req.userId
           });
           result = await action.save();
           item.deferredTo = { type: 'action', refId: result._id, date: data.deadline };
@@ -121,7 +125,8 @@ router.post('/:id/process', async (req, res) => {
             title: data.title || item.content,
             description: data.description || item.notes,
             purpose: data.purpose,
-            desiredOutcome: data.desiredOutcome
+            desiredOutcome: data.desiredOutcome,
+            userId: req.userId
           });
           result = await project.save();
           item.deferredTo = { type: 'project', refId: result._id };
@@ -129,7 +134,8 @@ router.post('/:id/process', async (req, res) => {
           const someday = new SomedayItem({
             title: data.title || item.content,
             description: data.description || item.notes,
-            category: data.category || 'someday'
+            category: data.category || 'someday',
+            userId: req.userId
           });
           result = await someday.save();
           item.deferredTo = { type: 'someday', refId: result._id };
@@ -157,13 +163,13 @@ router.post('/:id/process', async (req, res) => {
     await item.save();
 
     // Award points for processing
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     stats.totalPoints += UserStats.POINT_VALUES.processInbasket;
     stats.totalInbasketProcessed += 1;
     stats.updateStreak();
 
     // Check for inbox zero achievement
-    const unprocessedCount = await InbasketItem.countDocuments({ status: 'unprocessed' });
+    const unprocessedCount = await InbasketItem.countDocuments({ status: 'unprocessed', userId: req.userId });
     if (unprocessedCount === 0) {
       const hasAchievement = stats.achievements.some(a => a.type === 'inboxZero');
       if (!hasAchievement) {
@@ -188,7 +194,7 @@ router.post('/:id/process', async (req, res) => {
 // GET unprocessed count
 router.get('/meta/unprocessed-count', async (req, res) => {
   try {
-    const count = await InbasketItem.countDocuments({ status: 'unprocessed' });
+    const count = await InbasketItem.countDocuments({ status: 'unprocessed', userId: req.userId });
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: error.message });

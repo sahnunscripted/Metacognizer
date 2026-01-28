@@ -2,15 +2,18 @@ import express from 'express';
 import Project from '../models/Project.js';
 import Action from '../models/Action.js';
 import UserStats from '../models/UserStats.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 // GET all projects
 router.get('/', async (req, res) => {
   try {
     const { status, category, sortBy = 'updatedAt', sortOrder = 'desc' } = req.query;
 
-    const query = {};
+    const query = { userId: req.userId };
     if (status) query.status = status;
     if (category) query.category = category;
 
@@ -27,7 +30,7 @@ router.get('/', async (req, res) => {
 // GET single project with actions
 router.get('/:id', async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id).populate('actions');
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId }).populate('actions');
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
@@ -42,14 +45,15 @@ router.post('/', async (req, res) => {
   try {
     const { actions: initialActions, ...projectData } = req.body;
 
-    const project = new Project(projectData);
+    const project = new Project({ ...projectData, userId: req.userId });
     const savedProject = await project.save();
 
     // Create initial actions if provided
     if (initialActions && initialActions.length > 0) {
       const actionsToCreate = initialActions.map(action => ({
         ...action,
-        project: savedProject._id
+        project: savedProject._id,
+        userId: req.userId
       }));
       await Action.insertMany(actionsToCreate);
     }
@@ -65,7 +69,7 @@ router.post('/', async (req, res) => {
 // PUT update project
 router.put('/:id', async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
@@ -75,7 +79,7 @@ router.put('/:id', async (req, res) => {
       req.body.completedAt = new Date();
 
       // Award points
-      const stats = await UserStats.getStats();
+      const stats = await UserStats.getStats(req.userId);
       const points = UserStats.POINT_VALUES.completeProject;
 
       stats.totalPoints += points;
@@ -101,16 +105,16 @@ router.delete('/:id', async (req, res) => {
   try {
     const { deleteActions = 'false' } = req.query;
 
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
     if (deleteActions === 'true') {
-      await Action.deleteMany({ project: project._id });
+      await Action.deleteMany({ project: project._id, userId: req.userId });
     } else {
       // Unlink actions from project
-      await Action.updateMany({ project: project._id }, { project: null });
+      await Action.updateMany({ project: project._id, userId: req.userId }, { project: null });
     }
 
     await Project.findByIdAndDelete(req.params.id);
@@ -123,14 +127,15 @@ router.delete('/:id', async (req, res) => {
 // POST add action to project
 router.post('/:id/actions', async (req, res) => {
   try {
-    const project = await Project.findById(req.params.id);
+    const project = await Project.findOne({ _id: req.params.id, userId: req.userId });
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
     const action = new Action({
       ...req.body,
-      project: project._id
+      project: project._id,
+      userId: req.userId
     });
     await action.save();
 
@@ -144,7 +149,7 @@ router.post('/:id/actions', async (req, res) => {
 // GET project categories
 router.get('/meta/categories', async (req, res) => {
   try {
-    const categories = await Project.distinct('category');
+    const categories = await Project.distinct('category', { userId: req.userId });
     res.json(categories);
   } catch (error) {
     res.status(500).json({ message: error.message });

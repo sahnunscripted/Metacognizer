@@ -17,7 +17,9 @@ export default function Badge({
     '@errands': 'bg-green-500/20 text-green-300',
     '@home': 'bg-yellow-500/20 text-yellow-300',
     '@anywhere': 'bg-gray-500/20 text-gray-300',
-    '@waiting': 'bg-red-500/20 text-red-300'
+    '@waiting': 'bg-red-500/20 text-red-300',
+    '@beanetics': 'bg-amber-500/20 text-amber-300',
+    '@cafe': 'bg-teal-500/20 text-teal-300'
   };
 
   const sizes = {

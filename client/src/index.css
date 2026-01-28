@@ -5,10 +5,22 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    color-scheme: dark;
   }
 
   body {
     @apply min-h-screen;
+  }
+
+  /* Fix iOS Safari: date inputs inside transformed ancestors (e.g. modals)
+     don't open the native picker without their own compositing layer */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"] {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    position: relative;
+    z-index: 1;
   }
 
   /* Custom scrollbar for webkit browsers */

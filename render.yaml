@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: metacognizer
+    runtime: node
+    buildCommand: npm run install-all && npm run build
+    startCommand: cd server && node server.js
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: NODE_ENV
+        value: production

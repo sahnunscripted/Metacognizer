@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 
 const actionSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
   title: {
     type: String,
     required: [true, 'Action title is required'],
@@ -13,7 +19,7 @@ const actionSchema = new mongoose.Schema({
   },
   context: {
     type: String,
-    enum: ['@phone', '@computer', '@office', '@errands', '@home', '@anywhere', '@waiting'],
+    enum: ['@phone', '@computer', '@office', '@errands', '@home', '@anywhere', '@waiting', '@beanetics', '@cafe'],
     default: '@anywhere'
   },
   project: {
@@ -65,6 +71,11 @@ const actionSchema = new mongoose.Schema({
   pointsAwarded: {
     type: Number,
     default: 0
+  },
+  recurringActionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'RecurringAction',
+    default: null
   }
 }, {
   timestamps: true
@@ -75,6 +86,7 @@ actionSchema.index({ status: 1, deadline: 1 });
 actionSchema.index({ context: 1, status: 1 });
 actionSchema.index({ keywords: 1 });
 actionSchema.index({ project: 1 });
+actionSchema.index({ recurringActionId: 1, deadline: 1 });
 
 // Virtual to check if action is overdue
 actionSchema.virtual('isOverdue').get(function() {

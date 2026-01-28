@@ -2,15 +2,18 @@ import express from 'express';
 import SomedayItem from '../models/SomedayItem.js';
 import Action from '../models/Action.js';
 import Project from '../models/Project.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 // GET all someday items
 router.get('/', async (req, res) => {
   try {
     const { status = 'active', category, commitment, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
-    const query = {};
+    const query = { userId: req.userId };
     if (status) query.status = status;
     if (category) query.category = category;
     if (commitment) query.commitment = commitment;
@@ -27,7 +30,7 @@ router.get('/', async (req, res) => {
 // GET single item
 router.get('/:id', async (req, res) => {
   try {
-    const item = await SomedayItem.findById(req.params.id);
+    const item = await SomedayItem.findOne({ _id: req.params.id, userId: req.userId });
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
@@ -40,7 +43,7 @@ router.get('/:id', async (req, res) => {
 // POST create someday item
 router.post('/', async (req, res) => {
   try {
-    const item = new SomedayItem(req.body);
+    const item = new SomedayItem({ ...req.body, userId: req.userId });
     const savedItem = await item.save();
     res.status(201).json(savedItem);
   } catch (error) {
@@ -51,8 +54,8 @@ router.post('/', async (req, res) => {
 // PUT update someday item
 router.put('/:id', async (req, res) => {
   try {
-    const item = await SomedayItem.findByIdAndUpdate(
-      req.params.id,
+    const item = await SomedayItem.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
       req.body,
       { new: true, runValidators: true }
     );
@@ -68,8 +71,8 @@ router.put('/:id', async (req, res) => {
 // DELETE someday item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await SomedayItem.findByIdAndUpdate(
-      req.params.id,
+    const item = await SomedayItem.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
       { status: 'deleted' },
       { new: true }
     );
@@ -86,7 +89,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/activate', async (req, res) => {
   try {
     const { activateTo, data } = req.body;
-    const item = await SomedayItem.findById(req.params.id);
+    const item = await SomedayItem.findOne({ _id: req.params.id, userId: req.userId });
 
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -101,7 +104,8 @@ router.post('/:id/activate', async (req, res) => {
         purpose: data.purpose,
         desiredOutcome: data.desiredOutcome,
         deadline: data.deadline,
-        category: data.category || item.category
+        category: data.category || item.category,
+        userId: req.userId
       });
       result = await project.save();
       item.activatedTo = { type: 'project', refId: result._id };
@@ -111,7 +115,8 @@ router.post('/:id/activate', async (req, res) => {
         description: data.description || item.description,
         context: data.context || '@anywhere',
         deadline: data.deadline,
-        priority: data.priority || 3
+        priority: data.priority || 3,
+        userId: req.userId
       });
       result = await action.save();
       item.activatedTo = { type: 'action', refId: result._id };
@@ -132,8 +137,8 @@ router.post('/:id/activate', async (req, res) => {
 // POST mark item as reviewed
 router.post('/:id/review', async (req, res) => {
   try {
-    const item = await SomedayItem.findByIdAndUpdate(
-      req.params.id,
+    const item = await SomedayItem.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
       { lastReviewedAt: new Date() },
       { new: true }
     );
@@ -153,6 +158,7 @@ router.get('/meta/needs-review', async (req, res) => {
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
     const items = await SomedayItem.find({
+      userId: req.userId,
       status: 'active',
       $or: [
         { lastReviewedAt: null },

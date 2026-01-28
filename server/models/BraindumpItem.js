@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 
 const braindumpItemSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
   content: {
     type: String,
     required: [true, 'Content is required'],

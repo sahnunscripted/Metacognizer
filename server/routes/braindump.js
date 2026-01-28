@@ -5,15 +5,18 @@ import Project from '../models/Project.js';
 import SomedayItem from '../models/SomedayItem.js';
 import InbasketItem from '../models/InbasketItem.js';
 import UserStats from '../models/UserStats.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.use(auth);
 
 // GET all braindump items
 router.get('/', async (req, res) => {
   try {
     const { actionType, category, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
-    const query = {};
+    const query = { userId: req.userId };
     if (actionType) query.actionType = actionType;
     if (category) query.category = category;
 
@@ -29,7 +32,7 @@ router.get('/', async (req, res) => {
 // GET single item
 router.get('/:id', async (req, res) => {
   try {
-    const item = await BraindumpItem.findById(req.params.id);
+    const item = await BraindumpItem.findOne({ _id: req.params.id, userId: req.userId });
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
@@ -42,7 +45,7 @@ router.get('/:id', async (req, res) => {
 // POST create braindump item (quick capture)
 router.post('/', async (req, res) => {
   try {
-    const item = new BraindumpItem(req.body);
+    const item = new BraindumpItem({ ...req.body, userId: req.userId });
     const savedItem = await item.save();
     res.status(201).json(savedItem);
   } catch (error) {
@@ -60,7 +63,8 @@ router.post('/bulk', async (req, res) => {
 
     const braindumpItems = items.map(content => ({
       content: typeof content === 'string' ? content : content.content,
-      category: typeof content === 'object' ? content.category : 'uncategorized'
+      category: typeof content === 'object' ? content.category : 'uncategorized',
+      userId: req.userId
     }));
 
     const savedItems = await BraindumpItem.insertMany(braindumpItems);
@@ -73,8 +77,8 @@ router.post('/bulk', async (req, res) => {
 // PUT update braindump item
 router.put('/:id', async (req, res) => {
   try {
-    const item = await BraindumpItem.findByIdAndUpdate(
-      req.params.id,
+    const item = await BraindumpItem.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
       req.body,
       { new: true, runValidators: true }
     );
@@ -90,7 +94,7 @@ router.put('/:id', async (req, res) => {
 // DELETE braindump item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await BraindumpItem.findByIdAndDelete(req.params.id);
+    const item = await BraindumpItem.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
@@ -104,7 +108,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/process', async (req, res) => {
   try {
     const { convertTo, data } = req.body;
-    const item = await BraindumpItem.findById(req.params.id);
+    const item = await BraindumpItem.findOne({ _id: req.params.id, userId: req.userId });
 
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -121,7 +125,8 @@ router.post('/:id/process', async (req, res) => {
           deadline: data.deadline || null,
           estimatedMinutes: data.estimatedMinutes || null,
           project: data.project || null,
-          priority: data.priority || 3
+          priority: data.priority || 3,
+          userId: req.userId
         });
         result = await action.save();
         item.convertedTo = { type: 'action', refId: result._id };
@@ -133,7 +138,8 @@ router.post('/:id/process', async (req, res) => {
           description: data.description || '',
           purpose: data.purpose,
           desiredOutcome: data.desiredOutcome,
-          deadline: data.deadline
+          deadline: data.deadline,
+          userId: req.userId
         });
         result = await project.save();
         item.convertedTo = { type: 'project', refId: result._id };
@@ -144,7 +150,8 @@ router.post('/:id/process', async (req, res) => {
           title: data.title || item.content,
           description: data.description || '',
           category: data.category || 'someday',
-          commitment: data.commitment || 'interested'
+          commitment: data.commitment || 'interested',
+          userId: req.userId
         });
         result = await someday.save();
         item.convertedTo = { type: 'someday', refId: result._id };
@@ -154,7 +161,8 @@ router.post('/:id/process', async (req, res) => {
         const inbasket = new InbasketItem({
           content: item.content,
           source: data.source || 'note',
-          notes: data.notes || ''
+          notes: data.notes || '',
+          userId: req.userId
         });
         result = await inbasket.save();
         item.convertedTo = { type: 'inbasket', refId: result._id };
@@ -173,7 +181,7 @@ router.post('/:id/process', async (req, res) => {
     await item.save();
 
     // Award points for processing
-    const stats = await UserStats.getStats();
+    const stats = await UserStats.getStats(req.userId);
     stats.totalPoints += UserStats.POINT_VALUES.processBraindump;
     stats.totalBraindumpsProcessed += 1;
     stats.updateStreak();
@@ -192,7 +200,7 @@ router.post('/:id/process', async (req, res) => {
 // GET unprocessed count
 router.get('/meta/unprocessed-count', async (req, res) => {
   try {
-    const count = await BraindumpItem.countDocuments({ actionType: 'unprocessed' });
+    const count = await BraindumpItem.countDocuments({ actionType: 'unprocessed', userId: req.userId });
     res.json({ count });
   } catch (error) {
     res.status(500).json({ message: error.message });

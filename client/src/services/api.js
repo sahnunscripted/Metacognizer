@@ -7,6 +7,29 @@ const api = axios.create({
   }
 });
 
+// Attach JWT token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle 401 responses by clearing auth state
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      if (window.location.pathname !== '/auth') {
+        window.location.href = '/auth';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Actions API
 export const actionsApi = {
   getAll: (params) => api.get('/actions', { params }),
@@ -15,6 +38,16 @@ export const actionsApi = {
   update: (id, data) => api.put(`/actions/${id}`, data),
   delete: (id) => api.delete(`/actions/${id}`),
   complete: (id) => api.post(`/actions/${id}/complete`)
+};
+
+// Recurring Actions API
+export const recurringActionsApi = {
+  getAll: (params) => api.get('/recurring-actions', { params }),
+  getOne: (id) => api.get(`/recurring-actions/${id}`),
+  create: (data) => api.post('/recurring-actions', data),
+  update: (id, data) => api.put(`/recurring-actions/${id}`, data),
+  delete: (id, deleteFutureActions = false) =>
+    api.delete(`/recurring-actions/${id}`, { params: { deleteFutureActions } })
 };
 
 // Projects API

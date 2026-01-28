@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import PointsDisplay from '../../rewards/PointsDisplay/PointsDisplay';
 
 export default function Header() {
+  const { logout } = useAuth();
+
   return (
     <header className="sticky top-0 z-40 bg-dark-900/95 backdrop-blur-sm border-b border-dark-800 safe-area-inset-top">
       <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
@@ -14,7 +17,18 @@ export default function Header() {
           <span className="font-semibold text-dark-100">Metacognizer</span>
         </Link>
 
-        <PointsDisplay compact />
+        <div className="flex items-center gap-3">
+          <PointsDisplay compact />
+          <button
+            onClick={logout}
+            className="p-1.5 rounded-lg text-dark-400 hover:text-dark-200 hover:bg-dark-800 transition-colors"
+            title="Sign out"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
   );
