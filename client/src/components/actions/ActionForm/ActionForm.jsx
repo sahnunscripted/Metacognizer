@@ -226,14 +226,16 @@ export default function ActionForm({
         placeholder="Add any additional details..."
       />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Select
-          label="Context"
-          name="context"
-          value={formData.context}
-          onChange={handleChange}
-          options={CONTEXTS}
-        />
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <Select
+            label="Context"
+            name="context"
+            value={formData.context}
+            onChange={handleChange}
+            options={CONTEXTS}
+          />
+        </div>
 
         <Select
           label="Priority"
