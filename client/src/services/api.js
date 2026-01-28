@@ -114,4 +114,10 @@ export const onboardingApi = {
   completeUnload: () => api.post('/stats/onboarding/unload-complete')
 };
 
+// Account/GDPR API
+export const accountApi = {
+  exportData: () => api.get('/auth/export-data'),
+  deleteAccount: () => api.delete('/auth/delete-account')
+};
+
 export default api;

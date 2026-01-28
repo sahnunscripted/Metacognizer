@@ -3,6 +3,13 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
+import Action from '../models/Action.js';
+import Project from '../models/Project.js';
+import BraindumpItem from '../models/BraindumpItem.js';
+import InbasketItem from '../models/InbasketItem.js';
+import SomedayItem from '../models/SomedayItem.js';
+import RecurringAction from '../models/RecurringAction.js';
+import UserStats from '../models/UserStats.js';
 import auth from '../middleware/auth.js';
 
 const router = express.Router();
@@ -156,6 +163,71 @@ router.get('/me', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({ id: user._id, name: user.name, email: user.email });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// GET /api/auth/export-data (GDPR - Right to Access/Portability)
+router.get('/export-data', auth, async (req, res) => {
+  try {
+    const [user, actions, projects, braindumps, inbasket, someday, recurring, stats] = await Promise.all([
+      User.findById(req.userId).select('-password'),
+      Action.find({ userId: req.userId }),
+      Project.find({ userId: req.userId }),
+      BraindumpItem.find({ userId: req.userId }),
+      InbasketItem.find({ userId: req.userId }),
+      SomedayItem.find({ userId: req.userId }),
+      RecurringAction.find({ userId: req.userId }),
+      UserStats.findOne({ userId: req.userId })
+    ]);
+
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      user: {
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt
+      },
+      actions,
+      projects,
+      braindumpItems: braindumps,
+      inbasketItems: inbasket,
+      somedayItems: someday,
+      recurringActions: recurring,
+      stats: stats ? {
+        totalPoints: stats.totalPoints,
+        currentStreak: stats.currentStreak,
+        longestStreak: stats.longestStreak,
+        totalActionsCompleted: stats.totalActionsCompleted,
+        achievements: stats.achievements
+      } : null
+    };
+
+    res.setHeader('Content-Disposition', 'attachment; filename=metacognizer-data-export.json');
+    res.setHeader('Content-Type', 'application/json');
+    res.json(exportData);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DELETE /api/auth/delete-account (GDPR - Right to Erasure)
+router.delete('/delete-account', auth, async (req, res) => {
+  try {
+    // Delete all user data from all collections
+    await Promise.all([
+      Action.deleteMany({ userId: req.userId }),
+      Project.deleteMany({ userId: req.userId }),
+      BraindumpItem.deleteMany({ userId: req.userId }),
+      InbasketItem.deleteMany({ userId: req.userId }),
+      SomedayItem.deleteMany({ userId: req.userId }),
+      RecurringAction.deleteMany({ userId: req.userId }),
+      UserStats.deleteMany({ userId: req.userId }),
+      User.findByIdAndDelete(req.userId)
+    ]);
+
+    res.json({ message: 'Account and all data permanently deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
