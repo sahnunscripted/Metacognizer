@@ -34,6 +34,7 @@ export default function ActionList({
   projectId = null,
   showFilters = true,
   onActionClick,
+  onActionChange,
   limit
 }) {
   const [actions, setActions] = useState([]);
@@ -90,6 +91,9 @@ export default function ActionList({
     setActions(prev =>
       prev.map(a => a._id === updatedAction._id ? updatedAction : a)
     );
+
+    // Notify parent of action change
+    onActionChange?.();
 
     // If the action was just completed, start a 5-second fade-out
     if (updatedAction.status === 'completed') {

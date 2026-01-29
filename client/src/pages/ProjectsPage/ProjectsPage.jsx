@@ -273,9 +273,16 @@ function ProjectDetails({ project, onClose, onUpdate, onDelete }) {
     }
   };
 
-  const handleActionSave = () => {
+  const handleActionSave = async () => {
     setShowActionForm(false);
     setRefreshKey(k => k + 1);
+    // Refetch project to update action counts
+    try {
+      const response = await projectsApi.getOne(project._id);
+      onUpdate(response.data);
+    } catch (error) {
+      console.error('Failed to refresh project:', error);
+    }
   };
 
   const handleDelete = async () => {
@@ -344,6 +351,14 @@ function ProjectDetails({ project, onClose, onUpdate, onDelete }) {
           key={refreshKey}
           projectId={project._id}
           showFilters={false}
+          onActionChange={async () => {
+            try {
+              const response = await projectsApi.getOne(project._id);
+              onUpdate(response.data);
+            } catch (error) {
+              console.error('Failed to refresh project:', error);
+            }
+          }}
         />
       </div>
 
