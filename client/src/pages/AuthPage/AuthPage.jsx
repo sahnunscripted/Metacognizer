@@ -4,6 +4,16 @@ import { useAuth } from '../../context/AuthContext';
 import { Button, Input } from '../../components/common';
 import api from '../../services/api';
 
+// Password validation for registration (not login)
+function validatePassword(password) {
+  const errors = [];
+  if (password.length < 8) errors.push('at least 8 characters');
+  if (!/[A-Z]/.test(password)) errors.push('an uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('a lowercase letter');
+  if (!/[0-9]/.test(password)) errors.push('a number');
+  return errors;
+}
+
 export default function AuthPage() {
   const { user, login, register, googleLogin } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
@@ -43,8 +53,9 @@ export default function AuthPage() {
       if (isLogin) {
         await login(formData.email, formData.password);
       } else {
-        if (formData.password.length < 6) {
-          setError('Password must be at least 6 characters');
+        const passwordErrors = validatePassword(formData.password);
+        if (passwordErrors.length > 0) {
+          setError(`Password must contain ${passwordErrors.join(', ')}`);
           setLoading(false);
           return;
         }
@@ -123,7 +134,7 @@ export default function AuthPage() {
             type="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder={isLogin ? 'Your password' : 'At least 6 characters'}
+            placeholder={isLogin ? 'Your password' : '8+ chars, upper, lower, number'}
             autoComplete={isLogin ? 'current-password' : 'new-password'}
           />
 

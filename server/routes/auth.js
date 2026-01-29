@@ -14,6 +14,24 @@ import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Password validation for new accounts (not applied to login)
+function validatePassword(password) {
+  const errors = [];
+  if (password.length < 8) {
+    errors.push('at least 8 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    errors.push('an uppercase letter');
+  }
+  if (!/[a-z]/.test(password)) {
+    errors.push('a lowercase letter');
+  }
+  if (!/[0-9]/.test(password)) {
+    errors.push('a number');
+  }
+  return errors;
+}
+
 // Rate limit auth endpoints: 10 attempts per 15 minutes per IP
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -51,8 +69,11 @@ router.post('/register', authLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      return res.status(400).json({
+        message: `Password must contain ${passwordErrors.join(', ')}`
+      });
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
