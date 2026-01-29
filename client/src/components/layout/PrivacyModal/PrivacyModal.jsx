@@ -143,7 +143,10 @@ export default function PrivacyModal({ isOpen, onClose }) {
 
         {/* Contact */}
         <div className="text-xs text-dark-500 text-center pt-2 border-t border-dark-700">
-          Questions? Contact us at privacy@metacognizer.app
+          Questions? Contact us at{' '}
+          <a href="mailto:sahnunhm@gmail.com" className="text-dark-400 hover:text-dark-300 underline">
+            sahnunhm@gmail.com
+          </a>
         </div>
       </div>
     </Modal>

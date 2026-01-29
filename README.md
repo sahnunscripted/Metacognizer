@@ -1,13 +1,13 @@
 # Metacognizer
 
-An ADHD-friendly productivity app based on GTD (Getting Things Done) principles. Built with the MERN stack and designed for maximum dopamine through gamification.
+An ADHD-friendly productivity leveraging concepts from David Allen's Getting Things Done best selling book. Built with the MERN stack and designed for maximum dopamine through gamification.
 
 ## Features
 
 - **Next Actions**: Manage actionable tasks with contexts (@phone, @computer, etc.)
 - **Projects**: Multi-step outcomes with progress tracking
 - **Brain Dump**: Quick capture of thoughts with guided processing
-- **In-Basket**: Process incoming items with GTD workflow
+- **In-Basket**: Process incoming items with standardized workflow
 - **Someday/Maybe**: Park ideas for future consideration
 - **Gamification**: Points, streaks, and celebrations to boost motivation
 
@@ -68,7 +68,7 @@ metacognizer/
 └── package.json          # Root scripts
 ```
 
-## GTD Workflow
+## Processing Workflow
 
 1. **Capture**: Add everything to Brain Dump or In-Basket
 2. **Process**: Work through each item asking "Is it actionable?"
@@ -120,7 +120,7 @@ metacognizer/
 - **Mobile-first**: Optimized for phone use
 - **Dopamine-boosting**: Celebrations, points, and streaks
 - **ADHD-friendly**: Simple, clear workflows
-- **GTD-based**: Trusted system principles
+- **Based on Getting Things Done by David Allen**: Trusted system principles
 
 ## Future AI Integration
 

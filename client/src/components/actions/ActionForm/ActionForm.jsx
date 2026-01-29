@@ -3,6 +3,7 @@ import { Button, Input, Select } from '../../common';
 import { actionsApi, projectsApi, recurringActionsApi } from '../../../services/api';
 import { useCelebration } from '../../../context/CelebrationContext';
 import { useStats } from '../../../context/StatsContext';
+import { useOnboarding } from '../../../context/OnboardingContext';
 
 const CONTEXTS = [
   { value: '@anywhere', label: '@anywhere - Do it anywhere' },
@@ -52,6 +53,7 @@ export default function ActionForm({
   const [errors, setErrors] = useState({});
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
+  const { completeMission } = useOnboarding();
 
   useEffect(() => {
     if (action) {
@@ -195,6 +197,7 @@ export default function ActionForm({
       );
 
       refreshStats();
+      completeMission('action');
       onSave?.(response.data.action);
     } catch (error) {
       console.error('Failed to complete action:', error);

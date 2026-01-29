@@ -339,6 +339,20 @@ export default function OnboardingModal() {
               <Button onClick={handleFinish} fullWidth>
                 Let's go
               </Button>
+
+              {/* David Allen attribution */}
+              <p className="text-dark-600 text-xs leading-relaxed pt-2">
+                Huge thanks to{' '}
+                <a
+                  href="https://gettingthingsdone.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-dark-500 hover:text-dark-400 underline underline-offset-2 transition-colors"
+                >
+                  David Allen
+                </a>
+                , creator of the GTD methodology this app is based on.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
