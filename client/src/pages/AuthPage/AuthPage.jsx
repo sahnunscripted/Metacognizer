@@ -153,6 +153,7 @@ export default function AuthPage() {
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-dark-700" />
               <span className="text-xs text-dark-500">or</span>
+              <span className="text-xs text-dark-500">Hillary - not Clinton, ew - was here</span>
               <div className="flex-1 h-px bg-dark-700" />
             </div>
 
