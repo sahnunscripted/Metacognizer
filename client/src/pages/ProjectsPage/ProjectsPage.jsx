@@ -65,7 +65,7 @@ function ProjectCard({ project, onClick, onComplete }) {
   );
 }
 
-function ProjectForm({ project = null, onSave, onCancel }) {
+function ProjectForm({ project = null, onSave, onCancel, onDelete }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -76,6 +76,8 @@ function ProjectForm({ project = null, onSave, onCancel }) {
     deadline: ''
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (project) {
@@ -119,6 +121,20 @@ function ProjectForm({ project = null, onSave, onCancel }) {
       console.error('Failed to save project:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!project) return;
+    setDeleting(true);
+    try {
+      await projectsApi.delete(project._id, true);
+      onDelete?.(project._id);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -184,6 +200,47 @@ function ProjectForm({ project = null, onSave, onCancel }) {
         placeholder="e.g., work, personal, health"
       />
 
+      {/* Delete Section - only when editing */}
+      {project && (
+        <div className="border-t border-dark-700 pt-4">
+          {showDeleteConfirm ? (
+            <div className="space-y-3">
+              <p className="text-sm text-dark-300">
+                Delete this project and all its actions? This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  loading={deleting}
+                  onClick={handleDelete}
+                  className="flex-1"
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-danger-400 hover:text-danger-300 w-full"
+            >
+              Delete Project
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-3 pt-2">
         <Button type="button" variant="secondary" onClick={onCancel} className="flex-1">
           Cancel
@@ -196,9 +253,12 @@ function ProjectForm({ project = null, onSave, onCancel }) {
   );
 }
 
-function ProjectDetails({ project, onClose, onUpdate }) {
+function ProjectDetails({ project, onClose, onUpdate, onDelete }) {
   const [showActionForm, setShowActionForm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [keepActions, setKeepActions] = useState(false);
   const { celebrate } = useCelebration();
   const { refreshStats } = useStats();
 
@@ -216,6 +276,25 @@ function ProjectDetails({ project, onClose, onUpdate }) {
   const handleActionSave = () => {
     setShowActionForm(false);
     setRefreshKey(k => k + 1);
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      // If keepActions is true, pass false to deleteActions (don't delete them)
+      await projectsApi.delete(project._id, !keepActions);
+      onDelete?.(project._id);
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
+  const closeDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    setKeepActions(false);
   };
 
   const allActionsComplete = project.actions?.length > 0 &&
@@ -279,6 +358,74 @@ function ProjectDetails({ project, onClose, onUpdate }) {
         </Button>
       )}
 
+      {/* Delete Project Button */}
+      <div className="border-t border-dark-700 pt-4">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="text-danger-400 hover:text-danger-300 w-full"
+        >
+          Delete Project
+        </Button>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={closeDeleteConfirm}
+        title="Delete Project"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-dark-300">
+            Are you sure you want to delete <span className="font-medium text-dark-100">"{project.title}"</span>?
+          </p>
+
+          <p className="text-sm text-warning-400">
+            All associated actions will be deleted too.
+          </p>
+
+          {project.actions?.length > 0 && (
+            <label className="flex items-start gap-3 p-3 rounded-lg bg-dark-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={keepActions}
+                onChange={(e) => setKeepActions(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded border-dark-600 bg-dark-900 text-primary-500 focus:ring-primary-500"
+              />
+              <span className="text-sm text-dark-300">
+                Keep actions (they'll be moved to "No Project")
+              </span>
+            </label>
+          )}
+
+          <p className="text-xs text-dark-500">
+            This cannot be undone.
+          </p>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={closeDeleteConfirm}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              loading={deleting}
+              onClick={handleDelete}
+              className="flex-1"
+            >
+              Delete Project
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Action Form Modal */}
       <Modal
         isOpen={showActionForm}
@@ -341,6 +488,13 @@ export default function ProjectsPage() {
       prev.map(p => p._id === updatedProject._id ? updatedProject : p)
     );
     setViewingProject(updatedProject);
+  };
+
+  const handleProjectDelete = (projectId) => {
+    setProjects(prev => prev.filter(p => p._id !== projectId));
+    setViewingProject(null);
+    setShowForm(false);
+    setSelectedProject(null);
   };
 
   return (
@@ -454,6 +608,7 @@ export default function ProjectsPage() {
             project={viewingProject}
             onClose={() => setViewingProject(null)}
             onUpdate={handleProjectUpdate}
+            onDelete={handleProjectDelete}
           />
         )}
       </Modal>
