@@ -1,6 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();  // Must be called before other imports that use env vars
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/db.js';
@@ -17,8 +19,6 @@ import inbasketRouter from './routes/inbasket.js';
 import somedayRouter from './routes/someday.js';
 import statsRouter from './routes/stats.js';
 import recurringActionsRouter from './routes/recurringActions.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
