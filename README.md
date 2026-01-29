@@ -129,3 +129,9 @@ The MERN stack was chosen for easy AI model integration. Potential additions:
 - Smart action suggestions
 - Natural language processing for quick capture
 - Focus time recommendations
+
+## License
+
+This is free and open source software, forever.
+
+Licensed under the [GNU Affero General Public License v3 (AGPL-3.0)](LICENSE).
