@@ -320,7 +320,7 @@ export default function ActionForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {!formData.isRecurring && (
           <Input
             label="Deadline (optional)"
@@ -331,9 +331,9 @@ export default function ActionForm({
           />
         )}
 
-        <div className={formData.isRecurring ? 'col-span-2' : ''}>
+        <div className={formData.isRecurring ? 'sm:col-span-2' : ''}>
           <Input
-            label="Estimated time (min)"
+            label="Est. minutes (optional)"
             name="estimatedMinutes"
             type="number"
             value={formData.estimatedMinutes}
